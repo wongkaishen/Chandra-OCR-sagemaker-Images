@@ -113,8 +113,8 @@ def main():
                     'ModelName': model_name,
                     'InitialInstanceCount': 1,
                     'InstanceType': INSTANCE_TYPE,
-                    'ContainerStartupHealthCheckTimeoutInSeconds': 1200,
-                    'ModelDataDownloadTimeoutInSeconds': 1200,
+                    'ContainerStartupHealthCheckTimeoutInSeconds': 3600,
+                    'ModelDataDownloadTimeoutInSeconds': 3600,
                 },
             ]
         )
