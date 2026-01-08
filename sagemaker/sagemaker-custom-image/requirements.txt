@@ -11,7 +11,8 @@ torch>=2.0.0
 torchvision>=0.15.0
 
 # Transformers with Qwen3VL support - required by Chandra
-transformers>=4.46.0
+# Installing from source to support the latest qwen3_vl model type
+git+https://github.com/huggingface/transformers.git
 
 # chandra-ocr will be installed separately in Dockerfile with --no-deps flag
 # to prevent it from overriding our PyTorch CUDA 11.8 installation
