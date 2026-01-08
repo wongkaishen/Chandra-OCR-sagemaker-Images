@@ -10,7 +10,7 @@ ACCOUNT_ID = boto3.client('sts').get_caller_identity().get('Account')
 IMAGE_NAME = "chandra-ocr"
 TAG = "latest"
 ECR_URI = f"{ACCOUNT_ID}.dkr.ecr.{REGION}.amazonaws.com/{IMAGE_NAME}:{TAG}"
-SAGEMAKER_ROLE = "arn:aws:iam::{}:role/service-role/AmazonSageMaker-ExecutionRole-20231128T123456" # Placeholder - update this!
+SAGEMAKER_ROLE = "arn:aws:iam::{}:role/service-role/AmazonSageMaker-ExecutionRole-20251123T165775" # Placeholder - update this!
 INSTANCE_TYPE = "ml.g5.2xlarge"
 
 def run_command(command):
