@@ -2,7 +2,7 @@
 # This is a Python 3 image that uses the nginx, gunicorn, flask stack
 # for serving inferences in a stable way.
 
-FROM pytorch/pytorch:2.5.1-cuda12.4-cudnn9-runtime
+FROM 763104351884.dkr.ecr.us-east-1.amazonaws.com/pytorch-inference:2.1.0-gpu-py310-cu118-ubuntu20.04-sagemaker
 
 MAINTAINER Amazon AI <sage-learner@amazon.com>
 

@@ -42,6 +42,16 @@ def main():
     login_cmd = f"aws ecr get-login-password --region {REGION} | docker login --username AWS --password-stdin {ACCOUNT_ID}.dkr.ecr.{REGION}.amazonaws.com"
     run_command(login_cmd)
     
+    # 1b. Login to AWS DLC Registry (for base image)
+    # 763104351884 is the account for us-east-1 and other standard regions
+    dlc_registry = "763104351884"
+    print(f"Logging into AWS DLC Registry: {dlc_registry}")
+    try:
+        login_cmd_dlc = f"aws ecr get-login-password --region {REGION} | docker login --username AWS --password-stdin {dlc_registry}.dkr.ecr.{REGION}.amazonaws.com"
+        run_command(login_cmd_dlc)
+    except Exception as e:
+        print(f"Warning: Failed to login to AWS DLC registry. Build might fail if image is not cached: {e}")
+    
     # 2. Create Repository if not exists
     ecr_client = boto3.client('ecr', region_name=REGION)
     try:
