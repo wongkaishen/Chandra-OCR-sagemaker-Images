@@ -1,64 +1,69 @@
-"""
-Flask app for SageMaker custom inference endpoint
-Handles /ping and /invocations endpoints
-FIXED: Loads model ONCE at startup, not on every ping request
-"""
-from flask import Flask, request, jsonify
-import sys
-import os
+import flask
+from flask import request, jsonify
+import json
+import logging
+from src import inference
 
-# Add src to path
-sys.path.insert(0, '/opt/ml/code/src')
+app = flask.Flask(__name__)
+model_and_processor = None
 
-from inference import model_fn, input_fn, predict_fn, output_fn
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-app = Flask(__name__)
-
-# Load model ONCE at module import time (not on every request!)
-print("="*70)
-print("INITIALIZING MODEL AT STARTUP")
-print("This should only happen ONCE during container startup")
-print("="*70)
-model_dir = os.environ.get('MODEL_PATH', '/opt/ml/model')
-MODEL = model_fn(model_dir)
-print("="*70)
-print("✅ MODEL READY - Server starting...")
-print("="*70)
+@app.before_first_request
+def load_model():
+    """
+    Load the model on startup
+    """
+    global model_and_processor
+    # We load the model from the Hugging Face hub (cache)
+    # The container usually has this volume mounted or downloads it
+    try:
+        model_and_processor = inference.model_fn("/opt/ml/model")
+        logger.info("Model loaded successfully.")
+    except Exception as e:
+        logger.error(f"Failed to load model: {str(e)}")
+        # In this case, we might want to crash the container so it restarts
+        # but for now we just log it.
 
 @app.route('/ping', methods=['GET'])
 def ping():
     """
-    Health check endpoint required by SageMaker
-    Returns 200 immediately since model is already loaded at startup
+    Health check
     """
-    return '', 200
+    global model_and_processor
+    # If the model is loaded, we are healthy
+    status = 200 if model_and_processor else 500
+    return flask.Response(response='\n', status=status, mimetype='application/json')
 
 @app.route('/invocations', methods=['POST'])
-def invocations():
+def transformation():
     """
-    Inference endpoint required by SageMaker
-    Uses pre-loaded MODEL (no loading delay)
+    Inference endpoint
     """
+    global model_and_processor
+    
+    if not model_and_processor:
+        # Try loading if not loaded (fallback)
+        try:
+            load_model()
+        except:
+             return flask.Response(response='Model not loaded', status=500)
+
+    if flask.request.content_type == 'application/json':
+        data = flask.request.get_json()
+    else:
+        return flask.Response(response='This predictor only supports application/json data', status=415, mimetype='text/plain')
+
+    # Do inference
     try:
-        # Get content type
-        content_type = request.content_type or 'application/json'
-        
-        # Process input
-        data = input_fn(request.data, content_type)
-        
-        # Make prediction using pre-loaded MODEL
-        prediction = predict_fn(data, MODEL)
-        
-        # Format output
-        result, accept = output_fn(prediction, request.accept_mimetypes.best or 'application/json')
-        
-        return result, 200, {'Content-Type': accept}
-        
+        result = inference.predict_fn(data, model_and_processor)
+        return flask.Response(response=json.dumps({"result": result}), status=200, mimetype='application/json')
     except Exception as e:
-        print(f"Error in /invocations: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Inference processing failed: {str(e)}")
+        return flask.Response(response=f"Error processing request: {str(e)}", status=500, mimetype='text/plain')
 
 if __name__ == '__main__':
+    # This is for local testing only
     app.run(host='0.0.0.0', port=8080)

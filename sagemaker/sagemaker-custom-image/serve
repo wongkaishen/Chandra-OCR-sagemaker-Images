@@ -1,47 +1,13 @@
 #!/bin/bash
-# SageMaker 'serve' program
-# This is the entry point that SageMaker calls to start the inference server
+model_server_timeout=1200
+model_server_workers=1
 
-set -e
+# Start nginx
+nginx
 
-echo "======================================================================="
-echo "SageMaker Serve Program Started"
-echo "Starting Chandra OCR Inference Server"
-echo "======================================================================="
-echo "Working directory: $(pwd)"
-echo "Python version: $(python --version)"
-echo "Gunicorn version: $(gunicorn --version)"
-
-# Check if chandra-ocr package is installed
-if python -c "import chandra" 2>/dev/null; then
-    echo "Chandra package: $(python -c 'import chandra; print(chandra.__version__ if hasattr(chandra, \"__version__\") else \"installed\")')"
-else
-    echo "⚠️  WARNING: chandra-ocr package not found!"
-fi
-
-echo "Transformers version: $(python -c 'import transformers; print(transformers.__version__)' 2>/dev/null || echo 'N/A')"
-echo "Torch version: $(python -c 'import torch; print(torch.__version__)' 2>/dev/null || echo 'N/A')"
-echo "CUDA available: $(python -c 'import torch; print(torch.cuda.is_available())' 2>/dev/null || echo 'N/A')"
-if [ "$(python -c 'import torch; print(torch.cuda.is_available())' 2>/dev/null)" = "True" ]; then
-    echo "GPU: $(python -c 'import torch; print(torch.cuda.get_device_name(0))' 2>/dev/null || echo 'N/A')"
-fi
-echo "======================================================================="
-
-# Set PYTHONPATH to ensure imports work
-export PYTHONPATH=/opt/ml/code:$PYTHONPATH
-
-# Start gunicorn with appropriate settings for SageMaker
-echo "Starting gunicorn server on 0.0.0.0:8080..."
-# Use single worker to avoid multiple model loads (OOM risk)
-# Increase timeout for model loading (up to 2 hours for large models)
-exec gunicorn \
-    --bind=0.0.0.0:8080 \
-    --workers=1 \
-    --worker-class=sync \
-    --timeout=7200 \
-    --graceful-timeout=7200 \
-    --keep-alive=60 \
-    --log-level=info \
-    --access-logfile=- \
-    --error-logfile=- \
-    app:app
+# Start Gunicorn (which starts the Flask app)
+# Using one worker here because the model is heavy (GPU memory constraints)
+exec gunicorn --timeout ${model_server_timeout} \
+              --workers ${model_server_workers} \
+              --bind 0.0.0.0:8080 \
+              app:app
