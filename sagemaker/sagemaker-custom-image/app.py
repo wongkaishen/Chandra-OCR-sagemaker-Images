@@ -11,7 +11,7 @@ model_and_processor = None
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-@app.before_first_request
+# Model loading is now handled explicitly below
 def load_model():
     """
     Load the model on startup
@@ -36,6 +36,11 @@ def ping():
     # If the model is loaded, we are healthy
     status = 200 if model_and_processor else 500
     return flask.Response(response='\n', status=status, mimetype='application/json')
+
+# Load the model immediately on startup
+# This replaces the deprecated @app.before_first_request
+with app.app_context():
+    load_model()
 
 @app.route('/invocations', methods=['POST'])
 def transformation():
