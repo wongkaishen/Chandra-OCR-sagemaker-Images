@@ -11,7 +11,7 @@ IMAGE_NAME = "chandra-ocr"
 TAG = "latest"
 ECR_URI = f"{ACCOUNT_ID}.dkr.ecr.{REGION}.amazonaws.com/{IMAGE_NAME}:{TAG}"
 SAGEMAKER_ROLE = "arn:aws:iam::{}:role/service-role/AmazonSageMaker-ExecutionRole-20251123T165775" # Placeholder - update this!
-INSTANCE_TYPE = "ml.g5.2xlarge"
+INSTANCE_TYPE = "ml.g5.8xlarge"
 
 def run_command(command):
     print(f"Running: {command}")
